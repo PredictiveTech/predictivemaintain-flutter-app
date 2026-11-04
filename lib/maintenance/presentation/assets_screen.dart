@@ -42,9 +42,6 @@ class _AssetsScreenState extends State<AssetsScreen> {
     });
     try {
       final response = await _client.get(Uri.parse('$baseUrl/api/v1/assets'));
-      // TODO(debug): quitar este print temporal.
-      // ignore: avoid_print
-      print('GET /assets -> ${response.statusCode}: ${response.body}');
       if (response.statusCode < 200 || response.statusCode >= 300) {
         throw Exception('HTTP ${response.statusCode}');
       }

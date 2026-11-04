@@ -1,6 +1,7 @@
 import '../domain/alert.dart';
 import '../domain/alert_status.dart';
 import '../domain/severity.dart';
+import 'alert_diagnostic_dto.dart';
 import 'enum_parser.dart';
 
 class AlertDto {
@@ -13,7 +14,7 @@ class AlertDto {
   final String raisedAt;
   final String? discardReason;
   final int version;
-  final String? diagnostic;
+  final AlertDiagnosticDto? diagnostic;
 
   const AlertDto({
     required this.id,
@@ -38,7 +39,10 @@ class AlertDto {
         raisedAt: json['raisedAt'] as String,
         discardReason: json['discardReason'] as String?,
         version: (json['version'] as num).toInt(),
-        diagnostic: json['diagnostic'] as String?,
+        diagnostic: json['diagnostic'] == null
+            ? null
+            : AlertDiagnosticDto.fromJson(
+                json['diagnostic'] as Map<String, dynamic>),
       );
 
   Alert toDomain() => Alert(
@@ -51,6 +55,6 @@ class AlertDto {
         raisedAt: DateTime.parse(raisedAt),
         discardReason: discardReason,
         version: version,
-        diagnostic: diagnostic,
+        diagnostic: diagnostic?.toDomain(),
       );
 }

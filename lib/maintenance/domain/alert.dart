@@ -1,3 +1,4 @@
+import 'alert_diagnostic.dart';
 import 'alert_status.dart';
 import 'severity.dart';
 
@@ -12,7 +13,7 @@ class Alert {
   final DateTime raisedAt;
   final String? discardReason;
   final int version;
-  final String? diagnostic;
+  final AlertDiagnostic? diagnostic;
 
   const Alert({
     required this.id,

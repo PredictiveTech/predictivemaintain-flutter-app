@@ -1,1 +1,1 @@
-enum Severity { low, medium, high, critical }
+enum Severity { low, medium, high, critical, warning }

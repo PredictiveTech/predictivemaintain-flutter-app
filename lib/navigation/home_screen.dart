@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../maintenance/presentation/alerts_screen.dart';
 import '../maintenance/presentation/assets_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -22,7 +23,8 @@ class _HomeScreenState extends State<HomeScreen> {
         index: _currentIndex,
         children: [
           const AssetsScreen(),
-          for (final title in _titles.skip(1)) Center(child: Text(title)),
+          const AlertsScreen(),
+          Center(child: Text(_titles[2])),
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
