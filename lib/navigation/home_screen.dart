@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../maintenance/presentation/assets_screen.dart';
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -19,7 +21,8 @@ class _HomeScreenState extends State<HomeScreen> {
       body: IndexedStack(
         index: _currentIndex,
         children: [
-          for (final title in _titles) Center(child: Text(title)),
+          const AssetsScreen(),
+          for (final title in _titles.skip(1)) Center(child: Text(title)),
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(

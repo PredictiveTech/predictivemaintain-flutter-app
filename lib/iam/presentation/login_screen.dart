@@ -2,13 +2,11 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 
+import '../../core/network/api_config.dart';
 import '../../core/network/auth_token_holder.dart' as auth;
 import '../../core/network/http_client.dart';
 import '../../navigation/home_screen.dart';
 import '../infrastructure/auth_session_dto.dart';
-
-const String baseUrl =
-    'https://predictivemaintain-backend-production.up.railway.app';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});

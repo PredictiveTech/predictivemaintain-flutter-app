@@ -1,1 +1,1 @@
-enum AssetStatus { operational, alert, noCommunication }
+enum AssetStatus { operational, inAlert, noCommunication }
