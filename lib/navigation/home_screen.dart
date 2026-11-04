@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../maintenance/presentation/alerts_screen.dart';
 import '../maintenance/presentation/assets_screen.dart';
+import '../maintenance/presentation/work_orders_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -24,7 +25,7 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           const AssetsScreen(),
           const AlertsScreen(),
-          Center(child: Text(_titles[2])),
+          const WorkOrdersScreen(),
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
