@@ -9,6 +9,7 @@ import '../domain/asset.dart';
 import '../domain/asset_status.dart';
 import '../infrastructure/asset_dto.dart';
 import '../infrastructure/paged_response_dto.dart';
+import 'asset_detail_screen.dart';
 
 class AssetsScreen extends StatefulWidget {
   const AssetsScreen({super.key});
@@ -99,9 +100,15 @@ class _AssetCard extends StatelessWidget {
   const _AssetCard({required this.asset});
 
   static Color _statusColor(AssetStatus status) => switch (status) {
-        AssetStatus.operational => Colors.green,
-        AssetStatus.inAlert => Colors.red,
-        AssetStatus.noCommunication => Colors.grey,
+        AssetStatus.operational => Colors.green.shade700,
+        AssetStatus.inAlert => Colors.red.shade700,
+        AssetStatus.noCommunication => Colors.grey.shade700,
+      };
+
+  static Color _statusBgColor(AssetStatus status) => switch (status) {
+        AssetStatus.operational => Colors.green.shade50,
+        AssetStatus.inAlert => Colors.red.shade50,
+        AssetStatus.noCommunication => Colors.grey.shade200,
       };
 
   static String _statusLabel(AssetStatus status) => switch (status) {
@@ -110,23 +117,124 @@ class _AssetCard extends StatelessWidget {
         AssetStatus.noCommunication => 'Sin comunicación',
       };
 
+  static IconData _assetIcon(String type) => switch (type.toUpperCase()) {
+        'PUMP' => Icons.water_drop,
+        'MOTOR' => Icons.electric_bolt,
+        'COMPRESSOR' => Icons.air,
+        'CONVEYOR' => Icons.conveyor_belt,
+        'EXTRUDER' => Icons.settings,
+        _ => Icons.factory,
+      };
+
   @override
   Widget build(BuildContext context) {
     final color = _statusColor(asset.status);
+    final bgColor = _statusBgColor(asset.status);
+    final iconData = _assetIcon(asset.assetType);
+
     return Card(
-      child: ListTile(
-        title: Text(asset.name),
-        subtitle: Text(asset.code),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.circle, color: color, size: 12),
-            const SizedBox(width: 6),
-            Text(
-              _statusLabel(asset.status),
-              style: TextStyle(color: color, fontWeight: FontWeight.w600),
+      elevation: 2,
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => AssetDetailScreen(assetId: asset.id),
             ),
-          ],
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  iconData,
+                  color: Theme.of(context).colorScheme.primary,
+                  size: 28,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            asset.name,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: bgColor,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.circle, color: color, size: 8),
+                              const SizedBox(width: 6),
+                              Text(
+                                _statusLabel(asset.status),
+                                style: TextStyle(
+                                  color: color,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Código: ${asset.code}',
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(Icons.location_on, size: 16, color: Colors.grey.shade500),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            asset.location,
+                            style: TextStyle(
+                              color: Colors.grey.shade700,
+                              fontSize: 13,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
