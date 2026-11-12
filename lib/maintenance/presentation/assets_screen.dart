@@ -6,10 +6,10 @@ import '../../core/network/api_config.dart';
 import '../../core/network/auth_token_holder.dart' as auth;
 import '../../core/network/http_client.dart';
 import '../domain/asset.dart';
-import '../domain/asset_status.dart';
 import '../infrastructure/asset_dto.dart';
 import '../infrastructure/paged_response_dto.dart';
 import 'asset_detail_screen.dart';
+import 'asset_status_style.dart';
 
 class AssetsScreen extends StatefulWidget {
   const AssetsScreen({super.key});
@@ -99,24 +99,6 @@ class _AssetCard extends StatelessWidget {
 
   const _AssetCard({required this.asset});
 
-  static Color _statusColor(AssetStatus status) => switch (status) {
-        AssetStatus.operational => Colors.green.shade700,
-        AssetStatus.inAlert => Colors.red.shade700,
-        AssetStatus.noCommunication => Colors.grey.shade700,
-      };
-
-  static Color _statusBgColor(AssetStatus status) => switch (status) {
-        AssetStatus.operational => Colors.green.shade50,
-        AssetStatus.inAlert => Colors.red.shade50,
-        AssetStatus.noCommunication => Colors.grey.shade200,
-      };
-
-  static String _statusLabel(AssetStatus status) => switch (status) {
-        AssetStatus.operational => 'Operativo',
-        AssetStatus.inAlert => 'Alerta',
-        AssetStatus.noCommunication => 'Sin comunicación',
-      };
-
   static IconData _assetIcon(String type) => switch (type.toUpperCase()) {
         'PUMP' => Icons.water_drop,
         'MOTOR' => Icons.electric_bolt,
@@ -128,8 +110,8 @@ class _AssetCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = _statusColor(asset.status);
-    final bgColor = _statusBgColor(asset.status);
+    final color = assetStatusColor(asset.status);
+    final bgColor = assetStatusBgColor(asset.status);
     final iconData = _assetIcon(asset.assetType);
 
     return Card(
@@ -142,7 +124,7 @@ class _AssetCard extends StatelessWidget {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => AssetDetailScreen(assetId: asset.id),
+              builder: (context) => AssetDetailScreen(assetId: asset.id, status: asset.status),
             ),
           );
         },
@@ -193,7 +175,7 @@ class _AssetCard extends StatelessWidget {
                               Icon(Icons.circle, color: color, size: 8),
                               const SizedBox(width: 6),
                               Text(
-                                _statusLabel(asset.status),
+                                assetStatusLabel(asset.status),
                                 style: TextStyle(
                                   color: color,
                                   fontSize: 12,
