@@ -1,2 +1,2 @@
 const String baseUrl =
-    'https://predictivemaintain-backend-production.up.railway.app';
+    'https://predictivemaintain-backend-production.up.railway.app/api/v1';
