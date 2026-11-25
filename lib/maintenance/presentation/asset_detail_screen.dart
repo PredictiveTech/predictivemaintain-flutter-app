@@ -1,18 +1,34 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/network/api_config.dart';
-import '../../core/network/auth_token_holder.dart' as auth;
-import '../../core/network/http_client.dart';
+import '../../core/error/failure.dart';
 import '../domain/asset_detail.dart';
 import '../domain/asset_status.dart';
 import '../domain/sensor_reading.dart';
-import '../infrastructure/asset_detail_dto.dart';
-import '../infrastructure/sensor_reading_dto.dart';
 import 'asset_status_style.dart';
+import 'maintenance_providers.dart';
 
-class AssetDetailScreen extends StatefulWidget {
+/// Mensaje legible para un error de carga, diferenciando los HTTP comunes.
+String _describeError(Object e, String what) {
+  if (e is Failure) {
+    final code = e.statusCode;
+    if (code != null) {
+      return switch (code) {
+        401 => 'Tu sesión expiró. Vuelve a iniciar sesión.',
+        403 => 'No tienes permisos para ver $what.',
+        404 => 'No se encontró $what.',
+        >= 500 => 'El servidor tuvo un problema al cargar $what (HTTP $code).',
+        _ => 'No se pudo cargar $what (HTTP $code).',
+      };
+    }
+    if (e is MalformedResponseFailure) {
+      return 'La respuesta del servidor para $what no tiene el formato esperado.';
+    }
+  }
+  return 'No se pudo cargar $what. Revisa tu conexión.';
+}
+
+class AssetDetailScreen extends ConsumerWidget {
   final String assetId;
 
   /// Estado calculado que ya trae el listado (el endpoint de detalle no lo
@@ -22,129 +38,51 @@ class AssetDetailScreen extends StatefulWidget {
   const AssetDetailScreen({super.key, required this.assetId, this.status});
 
   @override
-  State<AssetDetailScreen> createState() => _AssetDetailScreenState();
-}
-
-class _HttpFailure implements Exception {
-  final int statusCode;
-  const _HttpFailure(this.statusCode);
-}
-
-/// Mensaje legible para un error de carga, diferenciando los HTTP comunes.
-String _describeError(Object e, String what) {
-  if (e is _HttpFailure) {
-    return switch (e.statusCode) {
-      401 => 'Tu sesión expiró. Vuelve a iniciar sesión.',
-      403 => 'No tienes permisos para ver $what.',
-      404 => 'No se encontró $what.',
-      >= 500 => 'El servidor tuvo un problema al cargar $what (HTTP ${e.statusCode}).',
-      _ => 'No se pudo cargar $what (HTTP ${e.statusCode}).',
-    };
-  }
-  if (e is FormatException || e is TypeError) {
-    return 'La respuesta del servidor para $what no tiene el formato esperado.';
-  }
-  return 'No se pudo cargar $what. Revisa tu conexión.';
-}
-
-class _AssetDetailScreenState extends State<AssetDetailScreen> {
-  final _client = HttpClient(tokenProvider: () async => auth.accessToken);
-  bool _loading = true;
-  AssetDetail? _asset;
-  String? _assetError;
-  List<SensorReading> _sensors = const [];
-  String? _sensorsError;
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  @override
-  void dispose() {
-    _client.close();
-    super.dispose();
-  }
-
-  Future<T> _get<T>(String path, T Function(dynamic json) parse) async {
-    final response = await _client.get(Uri.parse('$baseUrl$path'));
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw _HttpFailure(response.statusCode);
-    }
-    return parse(jsonDecode(response.body));
-  }
-
-  /// Carga detalle y sensores en paralelo; cada uno falla de forma independiente.
-  Future<void> _load() async {
-    setState(() => _loading = true);
-    final id = widget.assetId;
-
-    Future<void> loadAsset() async {
-      try {
-        final asset = await _get(
-          '/api/v1/assets/$id',
-          (j) => AssetDetailDto.fromJson(j as Map<String, dynamic>).toDomain(),
-        );
-        _asset = asset;
-        _assetError = null;
-      } catch (e) {
-        _assetError = _describeError(e, 'el activo');
-      }
+  Widget build(BuildContext context, WidgetRef ref) {
+    final detail = ref.watch(assetDetailProvider(assetId));
+    final sensors = ref.watch(assetSensorsProvider(assetId));
+    // Detalle y sensores se recargan juntos y fallan de forma independiente.
+    void reload() {
+      ref.invalidate(assetDetailProvider(assetId));
+      ref.invalidate(assetSensorsProvider(assetId));
     }
 
-    Future<void> loadSensors() async {
-      try {
-        final sensors = await _get(
-          '/api/v1/assets/$id/sensors',
-          (j) => (j as List)
-              .map((e) => SensorReadingDto.fromJson(e as Map<String, dynamic>).toDomain())
-              .toList(),
-        );
-        _sensors = sensors;
-        _sensorsError = null;
-      } catch (e) {
-        _sensorsError = _describeError(e, 'los sensores');
-      }
-    }
-
-    await Future.wait([loadAsset(), loadSensors()]);
-    if (!mounted) return;
-    setState(() => _loading = false);
-  }
-
-  @override
-  Widget build(BuildContext context) {
+    final loading = detail.isLoading || sensors.isLoading;
     return Scaffold(
-      appBar: AppBar(title: Text(_asset?.name ?? 'Detalle de Activo')),
-      body: _loading
+      appBar: AppBar(title: Text(detail.value?.name ?? 'Detalle de Activo')),
+      body: loading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
-              onRefresh: _load,
+              onRefresh: () async => reload(),
               child: ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(16),
                 children: [
-                  _buildHeader(),
+                  _buildHeader(detail, reload),
                   const SizedBox(height: 20),
                   const Text(
                     'Sensores en Tiempo Real',
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 10),
-                  ..._buildSensors(),
+                  ..._buildSensors(sensors, reload),
                 ],
               ),
             ),
     );
   }
 
-  Widget _buildHeader() {
-    final asset = _asset;
+  Widget _buildHeader(AsyncValue<AssetDetail> detail, VoidCallback onRetry) {
+    final asset = detail.value;
     if (asset == null) {
-      return _ErrorBox(message: _assetError ?? 'Activo no encontrado', onRetry: _load);
+      return _ErrorBox(
+        message: detail.hasError
+            ? _describeError(detail.error!, 'el activo')
+            : 'Activo no encontrado',
+        onRetry: onRetry,
+      );
     }
-    final status = widget.status;
+    final status = this.status;
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -208,10 +146,18 @@ class _AssetDetailScreenState extends State<AssetDetailScreen> {
     );
   }
 
-  List<Widget> _buildSensors() {
-    final error = _sensorsError;
-    if (error != null) return [_ErrorBox(message: error, onRetry: _load)];
-    if (_sensors.isEmpty) {
+  List<Widget> _buildSensors(
+      AsyncValue<List<SensorReading>> sensors, VoidCallback onRetry) {
+    if (sensors.hasError) {
+      return [
+        _ErrorBox(
+          message: _describeError(sensors.error!, 'los sensores'),
+          onRetry: onRetry,
+        ),
+      ];
+    }
+    final list = sensors.value ?? const <SensorReading>[];
+    if (list.isEmpty) {
       return const [
         Padding(
           padding: EdgeInsets.all(24),
@@ -219,7 +165,7 @@ class _AssetDetailScreenState extends State<AssetDetailScreen> {
         ),
       ];
     }
-    return [for (final s in _sensors) _SensorCard(sensor: s)];
+    return [for (final s in list) _SensorCard(sensor: s)];
   }
 }
 

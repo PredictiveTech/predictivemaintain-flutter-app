@@ -1,95 +1,47 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/network/api_config.dart';
-import '../../core/network/auth_token_holder.dart' as auth;
-import '../../core/network/http_client.dart';
 import '../domain/alert.dart';
 import '../domain/alert_status.dart';
 import '../domain/severity.dart';
-import '../infrastructure/alert_dto.dart';
-import '../infrastructure/paged_response_dto.dart';
+import 'maintenance_providers.dart';
 
-class AlertsScreen extends StatefulWidget {
+class AlertsScreen extends ConsumerWidget {
   const AlertsScreen({super.key});
 
   @override
-  State<AlertsScreen> createState() => _AlertsScreenState();
-}
-
-class _AlertsScreenState extends State<AlertsScreen> {
-  final _client = HttpClient(tokenProvider: () async => auth.accessToken);
-  bool _loading = true;
-  String? _error;
-  List<Alert> _alerts = const [];
-
-  @override
-  void initState() {
-    super.initState();
-    _loadAlerts();
-  }
-
-  @override
-  void dispose() {
-    _client.close();
-    super.dispose();
-  }
-
-  Future<void> _loadAlerts() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final response = await _client.get(Uri.parse('$baseUrl/api/v1/alerts'));
-      if (response.statusCode < 200 || response.statusCode >= 300) {
-        throw Exception('HTTP ${response.statusCode}');
-      }
-      final page = PagedResponseDto.fromJson(
-        jsonDecode(response.body) as Map<String, dynamic>,
-        AlertDto.fromJson,
-      ).toDomain((dto) => dto.toDomain());
-      if (!mounted) return;
-      setState(() => _alerts = page.items);
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _error = 'No se pudieron cargar las alertas: $e');
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_loading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (_error != null) {
-      return Center(
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Reintentar muestra de nuevo el spinner, igual que antes.
+    return ref.watch(alertsProvider).when(
+      skipLoadingOnRefresh: false,
+      skipLoadingOnReload: false,
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, _) => Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(_error!, textAlign: TextAlign.center),
+              Text('No se pudieron cargar las alertas: $e', textAlign: TextAlign.center),
               const SizedBox(height: 16),
               OutlinedButton(
-                onPressed: _loadAlerts,
+                onPressed: () => ref.invalidate(alertsProvider),
                 child: const Text('Reintentar'),
               ),
             ],
           ),
         ),
-      );
-    }
-    if (_alerts.isEmpty) {
-      return const Center(child: Text('No hay alertas'));
-    }
-    return ListView.builder(
-      padding: const EdgeInsets.all(8),
-      itemCount: _alerts.length,
-      itemBuilder: (context, index) => _AlertCard(alert: _alerts[index]),
+      ),
+      data: (items) {
+        if (items.isEmpty) {
+          return const Center(child: Text('No hay alertas'));
+        }
+        return ListView.builder(
+          padding: const EdgeInsets.all(8),
+          itemCount: items.length,
+          itemBuilder: (context, index) => _AlertCard(alert: items[index]),
+        );
+      },
     );
   }
 }
