@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 
@@ -32,6 +33,23 @@ class ApiClient {
           {Map<String, String?> query = const {}, bool authenticated = true}) =>
       _send('GET', path, query: query, authenticated: authenticated);
 
+  /// PUT [path] con [body] serializado como JSON.
+  Future<dynamic> put(String path, {Object? body}) =>
+      _send('PUT', path, body: body, authenticated: true);
+
+  /// DELETE [path].
+  Future<dynamic> delete(String path,
+          {Map<String, String?> query = const {}}) =>
+      _send('DELETE', path, query: query, authenticated: true);
+
+  /// GET de un recurso binario/texto (p. ej. CSV): devuelve los bytes tal cual.
+  Future<Uint8List> getBytes(String path,
+      {Map<String, String?> query = const {}, String? accept}) async {
+    final response = await _request('GET', path,
+        query: query, authenticated: true, headers: {'Accept': ?accept});
+    return response.bodyBytes;
+  }
+
   /// PATCH [path] con [body] serializado como JSON.
   Future<dynamic> patch(String path, {Object? body}) =>
       _send('PATCH', path, body: body, authenticated: true);
@@ -48,6 +66,25 @@ class ApiClient {
     Map<String, String?> query = const {},
     required bool authenticated,
   }) async {
+    final response =
+        await _request(method, path, body: body, query: query, authenticated: authenticated);
+    if (response.body.isEmpty) return null;
+    try {
+      return jsonDecode(response.body);
+    } on FormatException catch (e) {
+      throw MalformedResponseFailure(e.toString());
+    }
+  }
+
+  /// Envía la petición y devuelve la respuesta 2xx; lanza [Failure] si no.
+  Future<http.Response> _request(
+    String method,
+    String path, {
+    Object? body,
+    Map<String, String?> query = const {},
+    Map<String, String> headers = const {},
+    required bool authenticated,
+  }) async {
     // Los parámetros null se omiten (filtros no seleccionados).
     final params = {
       for (final e in query.entries)
@@ -57,7 +94,7 @@ class ApiClient {
     final request = http.Request(
       method,
       params.isEmpty ? uri : uri.replace(queryParameters: params),
-    );
+    )..headers.addAll(headers);
     if (body != null) {
       request.headers['Content-Type'] = 'application/json';
       request.body = jsonEncode(body);
@@ -84,13 +121,7 @@ class ApiClient {
       }
       throw failure;
     }
-
-    if (response.body.isEmpty) return null;
-    try {
-      return jsonDecode(response.body);
-    } on FormatException catch (e) {
-      throw MalformedResponseFailure(e.toString());
-    }
+    return response;
   }
 
   Failure _mapError(int status, String body) {

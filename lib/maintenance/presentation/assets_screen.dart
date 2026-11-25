@@ -13,7 +13,7 @@ class AssetsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     // Reintentar muestra de nuevo el spinner, igual que antes.
-    return ref.watch(assetsProvider).when(
+    final list = ref.watch(assetsProvider).when(
       skipLoadingOnRefresh: false,
       skipLoadingOnReload: false,
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -43,6 +43,23 @@ class AssetsScreen extends ConsumerWidget {
           itemBuilder: (context, index) => _AssetCard(asset: items[index]),
         );
       },
+    );
+
+    return Column(
+      children: [
+        Align(
+          alignment: Alignment.centerRight,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
+            child: TextButton.icon(
+              onPressed: () => context.push(AppRoutes.comparison),
+              icon: const Icon(Icons.compare_arrows),
+              label: const Text('Comparar activos'),
+            ),
+          ),
+        ),
+        Expanded(child: list),
+      ],
     );
   }
 }

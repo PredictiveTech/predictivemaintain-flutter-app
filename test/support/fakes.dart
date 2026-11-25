@@ -1,4 +1,15 @@
+import 'dart:typed_data';
+
+import 'package:predictivemaintain_flutter_app/core/domain/file_exporter.dart';
 import 'package:predictivemaintain_flutter_app/core/domain/paged_result.dart';
+import 'package:predictivemaintain_flutter_app/maintenance/domain/asset_update.dart';
+import 'package:predictivemaintain_flutter_app/maintenance/domain/availability_report.dart';
+import 'package:predictivemaintain_flutter_app/maintenance/domain/comparison_row.dart';
+import 'package:predictivemaintain_flutter_app/maintenance/domain/criticality.dart';
+import 'package:predictivemaintain_flutter_app/maintenance/domain/report_range.dart';
+import 'package:predictivemaintain_flutter_app/maintenance/domain/report_repository.dart';
+import 'package:predictivemaintain_flutter_app/subscription/domain/subscription.dart';
+import 'package:predictivemaintain_flutter_app/subscription/domain/subscription_repository.dart';
 import 'package:predictivemaintain_flutter_app/core/error/failure.dart';
 import 'package:predictivemaintain_flutter_app/iam/domain/user.dart';
 import 'package:predictivemaintain_flutter_app/iam/domain/user_repository.dart';
@@ -6,6 +17,7 @@ import 'package:predictivemaintain_flutter_app/maintenance/domain/alert.dart';
 import 'package:predictivemaintain_flutter_app/maintenance/domain/asset.dart';
 import 'package:predictivemaintain_flutter_app/maintenance/domain/asset_detail.dart';
 import 'package:predictivemaintain_flutter_app/maintenance/domain/asset_repository.dart';
+import 'package:predictivemaintain_flutter_app/maintenance/domain/asset_status.dart';
 import 'package:predictivemaintain_flutter_app/maintenance/domain/sensor_reading.dart';
 import 'package:predictivemaintain_flutter_app/maintenance/domain/alert_diagnostic.dart';
 import 'package:predictivemaintain_flutter_app/maintenance/domain/alert_repository.dart';
@@ -186,15 +198,212 @@ class FakeUserRepository implements UserRepository {
     return page_(pages[page], page, pages.length);
   }
 
+  User me = makeUser('me', 'Gerente Uno');
+  String? renamedTo;
+
+  @override
+  Future<User> getMe() async => me;
+
+  @override
+  Future<User> updateDisplayName(String displayName) async {
+    renamedTo = displayName;
+    me = User(
+        id: me.id, tenantId: me.tenantId, email: me.email, displayName: displayName,
+        active: true, roles: me.roles);
+    return me;
+  }
+
   PagedResult<User> page_(List<User> items, int n, int total) => PagedResult(
       items: items, number: n, size: 2, totalElements: 99, totalPages: total);
 }
 
-class FakeAssetsEmpty implements AssetRepository {
+
+AssetDetail makeAssetDetail({String id = 'asset1', bool active = true}) => AssetDetail(
+      id: id,
+      code: 'COMP-003',
+      name: 'Compresor 3',
+      location: 'Planta A',
+      plantId: 'plant1',
+      productionLine: 'L1',
+      assetType: 'COMPRESSOR',
+      criticality: Criticality.high,
+      latitude: -12.04,
+      longitude: -77.03,
+      active: active,
+    );
+
+class FakeAssetRepository implements AssetRepository {
+  AssetDetail detail = makeAssetDetail();
+  Failure? failure;
+
+  /// Si es true, la baja sin force responde 409 (órdenes abiertas).
+  bool conflictUnlessForce = false;
+  final deactivateCalls = <bool>[];
+  AssetUpdate? lastUpdate;
+
   @override
-  Future<PagedResult<Asset>> getAssets() async => pagedOf(<Asset>[]);
+  Future<PagedResult<Asset>> getAssets() async => pagedOf(<Asset>[
+        const Asset(
+          id: 'asset1',
+          code: 'COMP-003',
+          name: 'Compresor 3',
+          location: 'Planta A',
+          assetType: 'COMPRESSOR',
+          criticality: Criticality.high,
+          active: true,
+          status: AssetStatus.operational,
+          sensorTypes: [],
+        ),
+      ]);
+
   @override
-  Future<AssetDetail> getAssetDetail(String id) => throw UnimplementedError();
+  Future<AssetDetail> getAssetDetail(String id) async => detail;
+
   @override
-  Future<List<SensorReading>> getSensors(String id) => throw UnimplementedError();
+  Future<List<SensorReading>> getSensors(String id) async => const [];
+
+  @override
+  Future<AssetDetail> updateAsset(String id, AssetUpdate u) async {
+    lastUpdate = u;
+    if (failure != null) throw failure!;
+    detail = AssetDetail(
+        id: id, code: detail.code, name: u.name, location: u.location, plantId: u.plantId,
+        productionLine: u.productionLine, assetType: u.assetType, criticality: u.criticality,
+        latitude: u.latitude, longitude: u.longitude, active: true);
+    return detail;
+  }
+
+  @override
+  Future<AssetDetail> deactivateAsset(String id, {bool force = false}) async {
+    deactivateCalls.add(force);
+    if (conflictUnlessForce && !force) throw const ConflictFailure('HTTP 409');
+    if (failure != null) throw failure!;
+    detail = makeAssetDetail(id: id, active: false);
+    return detail;
+  }
+}
+
+class FakeReportRepository implements ReportRepository {
+  Failure? failure;
+  final calls = <String>[];
+  ReportRange? lastRange;
+  List<String>? lastIds;
+  AvailabilityReport? availability;
+  List<ComparisonRow> rows = const [];
+
+  @override
+  Future<AvailabilityReport> getAvailability(String assetId, ReportRange range) async {
+    calls.add('availability');
+    lastRange = range;
+    lastIds = [assetId];
+    if (failure != null) throw failure!;
+    return availability ??
+        AvailabilityReport(
+          assetId: assetId,
+          assetCode: 'COMP-003',
+          from: range.from,
+          to: range.to,
+          availabilityPercent: 98.5,
+          downtime: const Duration(hours: 10, minutes: 30),
+          period: const Duration(days: 30),
+          hasEvents: true,
+          events: [
+            AssetEvent(
+                type: AssetEventType.downtime,
+                referenceId: 'd1',
+                occurredAt: DateTime.utc(2026, 11, 1, 8),
+                endedAt: DateTime.utc(2026, 11, 1, 10, 30)),
+            AssetEvent(
+                type: AssetEventType.alert,
+                referenceId: 'al1',
+                occurredAt: DateTime.utc(2026, 11, 2, 8),
+                severity: 'CRITICAL',
+                status: 'CONFIRMED'),
+          ],
+        );
+  }
+
+  @override
+  Future<List<ComparisonRow>> compare(List<String> assetIds, ReportRange range) async {
+    calls.add('compare');
+    lastRange = range;
+    lastIds = assetIds;
+    if (failure != null) throw failure!;
+    return rows;
+  }
+
+  @override
+  Future<Uint8List> exportHistory(List<String> assetIds, ReportRange range) async {
+    calls.add('export');
+    lastRange = range;
+    lastIds = assetIds;
+    if (failure != null) throw failure!;
+    return Uint8List.fromList('a,b\n1,2\n'.codeUnits);
+  }
+}
+
+class FakeFileExporter implements FileExporter {
+  String? fileName;
+  Uint8List? bytes;
+  String? mimeType;
+
+  @override
+  Future<void> saveAndShare({
+    required String fileName,
+    required Uint8List bytes,
+    required String mimeType,
+  }) async {
+    this.fileName = fileName;
+    this.bytes = bytes;
+    this.mimeType = mimeType;
+  }
+}
+
+SubscriptionPlan makePlan(String id, String name, int limit, [double amount = 10]) =>
+    SubscriptionPlan(id: id, name: name, assetLimit: limit, amount: amount, currency: 'USD');
+
+Subscription makeSubscription({
+  SubscriptionPlan? plan,
+  int used = 9,
+  int limit = 10,
+  bool nearLimit = true,
+  int days = 20,
+}) =>
+    Subscription(
+      id: 's1',
+      status: SubscriptionStatus.active,
+      startsAt: DateTime.utc(2026, 10, 1),
+      endsAt: DateTime.utc(2026, 12, 14, 12),
+      monitoringAllowed: true,
+      plan: plan ?? makePlan('p-basic', 'Básico', limit),
+      capacity: Capacity(
+          limit: limit, used: used, available: limit - used,
+          usagePercent: used * 100 / limit, nearLimit: nearLimit),
+      expiry: Expiry(daysRemaining: days, expiresSoon: days <= 7, expired: false),
+    );
+
+class FakeSubscriptionRepository implements SubscriptionRepository {
+  Subscription subscription = makeSubscription();
+  List<SubscriptionPlan> plans = [
+    makePlan('p-pro', 'Pro', 50, 99),
+    makePlan('p-basic', 'Básico', 10, 29),
+    makePlan('p-free', 'Inicial', 3, 0),
+  ];
+  Failure? changeFailure;
+  String? requestedPlan;
+
+  @override
+  Future<Subscription> getSubscription() async => subscription;
+
+  @override
+  Future<List<SubscriptionPlan>> getPlans() async => plans;
+
+  @override
+  Future<Subscription> changePlan(String planId) async {
+    requestedPlan = planId;
+    if (changeFailure != null) throw changeFailure!;
+    final plan = plans.firstWhere((p) => p.id == planId);
+    subscription = makeSubscription(plan: plan, used: subscription.capacity.used, limit: plan.assetLimit, nearLimit: false);
+    return subscription;
+  }
 }

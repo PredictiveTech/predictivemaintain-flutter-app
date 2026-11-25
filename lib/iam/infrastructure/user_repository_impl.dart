@@ -22,4 +22,14 @@ class UserRepositoryImpl implements UserRepository {
           .toDomain((dto) => dto.toDomain()),
     );
   }
+
+  User _user(dynamic json) =>
+      parseResponse(() => UserDto.fromJson(json as Map<String, dynamic>).toDomain());
+
+  @override
+  Future<User> getMe() async => _user(await _api.get('/users/me'));
+
+  @override
+  Future<User> updateDisplayName(String displayName) async =>
+      _user(await _api.patch('/users/me', body: {'displayName': displayName}));
 }

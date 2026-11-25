@@ -1,49 +1,38 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../maintenance/presentation/alerts_screen.dart';
-import '../maintenance/presentation/assets_screen.dart';
-import '../maintenance/presentation/work_orders_screen.dart';
+import '../app/session_controller.dart';
+import 'nav_destinations.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  static const _titles = ['Activos', 'Alertas', 'Órdenes de trabajo'];
-
+class _HomeScreenState extends ConsumerState<HomeScreen> {
   int _currentIndex = 0;
 
   @override
   Widget build(BuildContext context) {
+    final roles = ref.watch(sessionControllerProvider.select((s) => s?.roles ?? const []));
+    final destinations = destinationsFor(roles);
+    final index = _currentIndex.clamp(0, destinations.length - 1);
+
     return Scaffold(
-      appBar: AppBar(title: Text(_titles[_currentIndex])),
+      appBar: AppBar(title: Text(destinations[index].label)),
       body: IndexedStack(
-        index: _currentIndex,
-        children: [
-          const AssetsScreen(),
-          const AlertsScreen(),
-          const WorkOrdersScreen(),
-        ],
+        index: index,
+        children: [for (final d in destinations) d.build()],
       ),
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.precision_manufacturing),
-            label: 'Activos',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.notifications_active),
-            label: 'Alertas',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.assignment),
-            label: 'Órdenes de trabajo',
-          ),
+        type: BottomNavigationBarType.fixed,
+        currentIndex: index,
+        onTap: (i) => setState(() => _currentIndex = i),
+        items: [
+          for (final d in destinations)
+            BottomNavigationBarItem(icon: Icon(d.icon), label: d.label),
         ],
       ),
     );

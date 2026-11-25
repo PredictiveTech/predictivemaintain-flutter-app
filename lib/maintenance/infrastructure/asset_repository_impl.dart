@@ -2,10 +2,12 @@ import '../../core/network/api_client.dart';
 import '../domain/asset.dart';
 import '../domain/asset_detail.dart';
 import '../domain/asset_repository.dart';
+import '../domain/asset_update.dart';
 import '../../core/domain/paged_result.dart';
 import '../domain/sensor_reading.dart';
 import 'asset_detail_dto.dart';
 import 'asset_dto.dart';
+import 'enum_parser.dart';
 import 'paged_response_dto.dart';
 import 'sensor_reading_dto.dart';
 
@@ -40,4 +42,26 @@ class AssetRepositoryImpl implements AssetRepository {
           .toList(),
     );
   }
+
+  AssetDetail _detail(dynamic json) => parseResponse(
+        () => AssetDetailDto.fromJson(json as Map<String, dynamic>).toDomain(),
+      );
+
+  @override
+  Future<AssetDetail> updateAsset(String assetId, AssetUpdate u) async =>
+      _detail(await _api.put('/assets/$assetId', body: {
+        'name': u.name,
+        'location': u.location,
+        'assetType': u.assetType,
+        'criticality': apiName(u.criticality),
+        'plantId': u.plantId,
+        'productionLine': u.productionLine,
+        'latitude': u.latitude,
+        'longitude': u.longitude,
+      }));
+
+  @override
+  Future<AssetDetail> deactivateAsset(String assetId, {bool force = false}) async =>
+      _detail(await _api.delete('/assets/$assetId',
+          query: {'force': force ? 'true' : null}));
 }

@@ -57,13 +57,13 @@ void main() {
         expiresAt: DateTime.now().add(const Duration(hours: 1)),
         userId: '1',
         tenantId: '1',
-        roles: const []);
+        roles: const ['MAINTENANCE_MANAGER']);
     container = ProviderContainer(overrides: [
       authSessionStoreProvider.overrideWithValue(InMemorySessionStore(session)),
       alertRepositoryProvider.overrideWithValue(alerts),
       workOrderRepositoryProvider.overrideWithValue(orders),
       userRepositoryProvider.overrideWithValue(users),
-      assetRepositoryProvider.overrideWithValue(FakeAssetsEmpty()),
+      assetRepositoryProvider.overrideWithValue(FakeAssetRepository()),
     ]);
     addTearDown(container.dispose);
     await container.read(sessionControllerProvider.notifier).restore();

@@ -16,6 +16,9 @@ class SessionController extends Notifier<AuthSession?> {
 
   void signedIn(AuthSession session) => state = session;
 
+  /// Cierre de sesión pedido por el usuario: borra la sesión del almacén seguro.
+  Future<void> logout() => onUnauthorized();
+
   /// El backend respondió 401 a una petición autenticada: cerrar sesión.
   /// Idempotente, porque varias peticiones en vuelo pueden fallar a la vez.
   Future<void> onUnauthorized() async {

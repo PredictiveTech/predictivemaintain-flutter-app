@@ -7,11 +7,16 @@ Future<String?> askRequiredText(
   required String label,
   required String confirmLabel,
   int maxLength = 500,
+  String initialText = '',
 }) {
   return showDialog<String>(
     context: context,
     builder: (_) => _RequiredTextDialog(
-        title: title, label: label, confirmLabel: confirmLabel, maxLength: maxLength),
+        title: title,
+        label: label,
+        confirmLabel: confirmLabel,
+        maxLength: maxLength,
+        initialText: initialText),
   );
 }
 
@@ -20,12 +25,14 @@ class _RequiredTextDialog extends StatefulWidget {
   final String label;
   final String confirmLabel;
   final int maxLength;
+  final String initialText;
 
   const _RequiredTextDialog({
     required this.title,
     required this.label,
     required this.confirmLabel,
     required this.maxLength,
+    required this.initialText,
   });
 
   @override
@@ -33,7 +40,7 @@ class _RequiredTextDialog extends StatefulWidget {
 }
 
 class _RequiredTextDialogState extends State<_RequiredTextDialog> {
-  final _controller = TextEditingController();
+  late final _controller = TextEditingController(text: widget.initialText);
 
   @override
   void dispose() {

@@ -1,5 +1,21 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/domain/file_exporter.dart';
+import '../core/infrastructure/share_file_exporter.dart';
+import '../iam/application/get_profile_use_case.dart';
+import '../iam/application/update_display_name_use_case.dart';
+import '../maintenance/application/compare_assets_use_case.dart';
+import '../maintenance/application/deactivate_asset_use_case.dart';
+import '../maintenance/application/export_history_use_case.dart';
+import '../maintenance/application/get_availability_report_use_case.dart';
+import '../maintenance/application/update_asset_use_case.dart';
+import '../maintenance/domain/report_repository.dart';
+import '../maintenance/infrastructure/report_repository_impl.dart';
+import '../subscription/application/change_plan_use_case.dart';
+import '../subscription/application/get_plans_use_case.dart';
+import '../subscription/application/get_subscription_use_case.dart';
+import '../subscription/domain/subscription_repository.dart';
+import '../subscription/infrastructure/subscription_repository_impl.dart';
 import '../core/network/api_client.dart';
 import '../core/network/api_config.dart';
 import '../iam/application/get_technicians_use_case.dart';
@@ -119,3 +135,42 @@ final assignWorkOrderUseCaseProvider =
     Provider((ref) => AssignWorkOrderUseCase(ref.watch(workOrderRepositoryProvider)));
 final updateWorkOrderStatusUseCaseProvider = Provider(
     (ref) => UpdateWorkOrderStatusUseCase(ref.watch(workOrderRepositoryProvider)));
+
+final fileExporterProvider = Provider<FileExporter>((ref) => ShareFileExporter());
+
+// --- iam (perfil) ---
+
+final getProfileUseCaseProvider =
+    Provider((ref) => GetProfileUseCase(ref.watch(userRepositoryProvider)));
+final updateDisplayNameUseCaseProvider =
+    Provider((ref) => UpdateDisplayNameUseCase(ref.watch(userRepositoryProvider)));
+
+// --- maintenance: fichas de activo y reportes ---
+
+final reportRepositoryProvider = Provider<ReportRepository>(
+  (ref) => ReportRepositoryImpl(ref.watch(apiClientProvider)),
+);
+
+final updateAssetUseCaseProvider =
+    Provider((ref) => UpdateAssetUseCase(ref.watch(assetRepositoryProvider)));
+final deactivateAssetUseCaseProvider = Provider((ref) => DeactivateAssetUseCase(
+    ref.watch(assetRepositoryProvider), ref.watch(workOrderRepositoryProvider)));
+final getAvailabilityReportUseCaseProvider = Provider(
+    (ref) => GetAvailabilityReportUseCase(ref.watch(reportRepositoryProvider)));
+final compareAssetsUseCaseProvider =
+    Provider((ref) => CompareAssetsUseCase(ref.watch(reportRepositoryProvider)));
+final exportHistoryUseCaseProvider = Provider((ref) => ExportHistoryUseCase(
+    ref.watch(reportRepositoryProvider), ref.watch(fileExporterProvider)));
+
+// --- subscription ---
+
+final subscriptionRepositoryProvider = Provider<SubscriptionRepository>(
+  (ref) => SubscriptionRepositoryImpl(ref.watch(apiClientProvider)),
+);
+
+final getSubscriptionUseCaseProvider = Provider(
+    (ref) => GetSubscriptionUseCase(ref.watch(subscriptionRepositoryProvider)));
+final getPlansUseCaseProvider =
+    Provider((ref) => GetPlansUseCase(ref.watch(subscriptionRepositoryProvider)));
+final changePlanUseCaseProvider =
+    Provider((ref) => ChangePlanUseCase(ref.watch(subscriptionRepositoryProvider)));

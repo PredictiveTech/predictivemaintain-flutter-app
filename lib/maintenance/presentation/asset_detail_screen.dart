@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../app/routes.dart';
 import '../../core/error/failure.dart';
 import '../../core/presentation/widgets/error_view.dart';
 import '../../core/presentation/widgets/status_chip.dart';
 import '../domain/asset_detail.dart';
 import '../domain/asset_status.dart';
 import '../domain/sensor_reading.dart';
+import 'asset_actions.dart';
+import 'asset_deactivation.dart';
 import 'asset_status_style.dart';
+import 'failure_feedback.dart';
 import 'maintenance_providers.dart';
 
 /// Mensaje legible para un error de carga, diferenciando los HTTP comunes.
@@ -49,9 +54,39 @@ class AssetDetailScreen extends ConsumerWidget {
       ref.invalidate(assetSensorsProvider(assetId));
     }
 
+    ref.watch(assetActionsProvider); // mantiene vivo el notifier durante la baja
+    ref.listen(assetActionsProvider, (_, state) {
+      if (state.hasError) {
+        showActionFailure(
+          context,
+          state.error!,
+          conflictMessage: 'La operación no es válida para este activo '
+              '(¿ya está dado de baja?). Recarga para ver su estado actual.',
+          onReload: reload,
+        );
+      }
+    });
+
+    final asset = detail.value;
     final loading = detail.isLoading || sensors.isLoading;
     return Scaffold(
-      appBar: AppBar(title: Text(detail.value?.name ?? 'Detalle de Activo')),
+      appBar: AppBar(
+        title: Text(asset?.name ?? 'Detalle de Activo'),
+        actions: [
+          // Un activo inactivo no se puede editar ni volver a dar de baja.
+          if (asset != null && asset.active && !loading)
+            PopupMenuButton<String>(
+              onSelected: (v) {
+                if (v == 'edit') context.push(AppRoutes.assetEdit(assetId));
+                if (v == 'deactivate') confirmAndDeactivate(context, ref, asset);
+              },
+              itemBuilder: (_) => const [
+                PopupMenuItem(value: 'edit', child: Text('Editar activo')),
+                PopupMenuItem(value: 'deactivate', child: Text('Dar de baja')),
+              ],
+            ),
+        ],
+      ),
       body: loading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
@@ -61,6 +96,14 @@ class AssetDetailScreen extends ConsumerWidget {
                 padding: const EdgeInsets.all(16),
                 children: [
                   _buildHeader(detail, reload),
+                  if (asset != null) ...[
+                    const SizedBox(height: 12),
+                    OutlinedButton.icon(
+                      onPressed: () => context.push(AppRoutes.assetAvailability(assetId)),
+                      icon: const Icon(Icons.history),
+                      label: const Text('Historial de fallas y disponibilidad'),
+                    ),
+                  ],
                   const SizedBox(height: 20),
                   const Text(
                     'Sensores en Tiempo Real',

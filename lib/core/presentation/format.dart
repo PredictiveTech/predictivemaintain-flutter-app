@@ -27,3 +27,20 @@ String describeActionFailure(Object e) {
   }
   return 'No se pudo completar la acción.';
 }
+
+/// `2 h 15 min`, `45 min`, `30 s`, `3 d 4 h`.
+String formatDuration(Duration d) {
+  if (d.inSeconds < 60) return '${d.inSeconds} s';
+  if (d.inMinutes < 60) return '${d.inMinutes} min';
+  if (d.inHours < 24) {
+    final m = d.inMinutes % 60;
+    return m == 0 ? '${d.inHours} h' : '${d.inHours} h $m min';
+  }
+  final h = d.inHours % 24;
+  return h == 0 ? '${d.inDays} d' : '${d.inDays} d $h h';
+}
+
+String formatDate(DateTime t) {
+  final l = t.toLocal();
+  return '${_two(l.day)}/${_two(l.month)}/${l.year}';
+}

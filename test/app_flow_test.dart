@@ -10,6 +10,7 @@ import 'package:predictivemaintain_flutter_app/main.dart';
 import 'package:predictivemaintain_flutter_app/maintenance/domain/asset.dart';
 import 'package:predictivemaintain_flutter_app/maintenance/domain/asset_detail.dart';
 import 'package:predictivemaintain_flutter_app/maintenance/domain/asset_repository.dart';
+import 'package:predictivemaintain_flutter_app/maintenance/domain/asset_update.dart';
 import 'package:predictivemaintain_flutter_app/core/domain/paged_result.dart';
 import 'package:predictivemaintain_flutter_app/maintenance/domain/asset_status.dart';
 import 'package:predictivemaintain_flutter_app/maintenance/domain/criticality.dart';
@@ -29,7 +30,7 @@ class FakeAuth implements AuthRepository {
       expiresAt: DateTime.now().add(const Duration(hours: 1)),
       userId: '1',
       tenantId: '1',
-      roles: const [],
+      roles: const ['MAINTENANCE_MANAGER'],
     );
   }
 }
@@ -69,6 +70,13 @@ class FakeAssets implements AssetRepository {
 
   @override
   Future<List<SensorReading>> getSensors(String id) async => const [];
+
+  @override
+  Future<AssetDetail> updateAsset(String id, AssetUpdate u) => throw UnimplementedError();
+
+  @override
+  Future<AssetDetail> deactivateAsset(String id, {bool force = false}) =>
+      throw UnimplementedError();
 }
 
 void main() {
