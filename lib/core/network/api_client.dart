@@ -28,8 +28,13 @@ class ApiClient {
 
   /// GET [path]; devuelve el JSON decodificado (`Map`, `List`…) o null si el
   /// cuerpo está vacío.
-  Future<dynamic> get(String path, {bool authenticated = true}) =>
-      _send('GET', path, authenticated: authenticated);
+  Future<dynamic> get(String path,
+          {Map<String, String?> query = const {}, bool authenticated = true}) =>
+      _send('GET', path, query: query, authenticated: authenticated);
+
+  /// PATCH [path] con [body] serializado como JSON.
+  Future<dynamic> patch(String path, {Object? body}) =>
+      _send('PATCH', path, body: body, authenticated: true);
 
   /// POST [path] con [body] serializado como JSON.
   Future<dynamic> post(String path,
@@ -40,9 +45,19 @@ class ApiClient {
     String method,
     String path, {
     Object? body,
+    Map<String, String?> query = const {},
     required bool authenticated,
   }) async {
-    final request = http.Request(method, Uri.parse('$baseUrl$path'));
+    // Los parámetros null se omiten (filtros no seleccionados).
+    final params = {
+      for (final e in query.entries)
+        if (e.value != null) e.key: e.value!,
+    };
+    final uri = Uri.parse('$baseUrl$path');
+    final request = http.Request(
+      method,
+      params.isEmpty ? uri : uri.replace(queryParameters: params),
+    );
     if (body != null) {
       request.headers['Content-Type'] = 'application/json';
       request.body = jsonEncode(body);
@@ -83,6 +98,7 @@ class ApiClient {
     final message = 'HTTP $status';
     return switch (status) {
       401 => UnauthorizedFailure(message, serverMessage: serverMessage),
+      409 => ConflictFailure(message, serverMessage: serverMessage),
       400 || 422 => ValidationFailure(message,
           statusCode: status, serverMessage: serverMessage),
       _ => ServerFailure(message,

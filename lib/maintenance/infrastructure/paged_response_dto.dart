@@ -1,4 +1,4 @@
-import '../domain/paged_result.dart';
+import '../../core/domain/paged_result.dart';
 
 /// Respuesta paginada: `{ items: [...], totalElements, page, size, totalPages }`.
 class PagedResponseDto<T> {

@@ -2,19 +2,29 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/network/api_client.dart';
 import '../core/network/api_config.dart';
+import '../iam/application/get_technicians_use_case.dart';
 import '../iam/application/login_use_case.dart';
 import '../iam/application/logout_use_case.dart';
 import '../iam/application/restore_session_use_case.dart';
 import '../iam/domain/auth_repository.dart';
 import '../iam/domain/auth_session_store.dart';
+import '../iam/domain/user_repository.dart';
 import '../iam/infrastructure/auth_repository_impl.dart';
 import '../iam/infrastructure/secure_auth_session_store.dart';
+import '../iam/infrastructure/user_repository_impl.dart';
 import 'session_controller.dart';
+import '../maintenance/application/assign_work_order_use_case.dart';
+import '../maintenance/application/confirm_alert_use_case.dart';
+import '../maintenance/application/create_work_order_use_case.dart';
+import '../maintenance/application/discard_alert_use_case.dart';
+import '../maintenance/application/get_alert_use_case.dart';
 import '../maintenance/application/get_alerts_use_case.dart';
 import '../maintenance/application/get_asset_detail_use_case.dart';
 import '../maintenance/application/get_asset_sensors_use_case.dart';
 import '../maintenance/application/get_assets_use_case.dart';
+import '../maintenance/application/get_work_order_use_case.dart';
 import '../maintenance/application/get_work_orders_use_case.dart';
+import '../maintenance/application/update_work_order_status_use_case.dart';
 import '../maintenance/domain/alert_repository.dart';
 import '../maintenance/domain/asset_repository.dart';
 import '../maintenance/domain/work_order_repository.dart';
@@ -64,6 +74,13 @@ final logoutUseCaseProvider = Provider(
   (ref) => LogoutUseCase(ref.watch(authSessionStoreProvider)),
 );
 
+final userRepositoryProvider = Provider<UserRepository>(
+  (ref) => UserRepositoryImpl(ref.watch(apiClientProvider)),
+);
+
+final getTechniciansUseCaseProvider =
+    Provider((ref) => GetTechniciansUseCase(ref.watch(userRepositoryProvider)));
+
 // --- maintenance ---
 
 final assetRepositoryProvider = Provider<AssetRepository>(
@@ -88,3 +105,17 @@ final getAlertsUseCaseProvider =
     Provider((ref) => GetAlertsUseCase(ref.watch(alertRepositoryProvider)));
 final getWorkOrdersUseCaseProvider =
     Provider((ref) => GetWorkOrdersUseCase(ref.watch(workOrderRepositoryProvider)));
+final getAlertUseCaseProvider =
+    Provider((ref) => GetAlertUseCase(ref.watch(alertRepositoryProvider)));
+final confirmAlertUseCaseProvider =
+    Provider((ref) => ConfirmAlertUseCase(ref.watch(alertRepositoryProvider)));
+final discardAlertUseCaseProvider =
+    Provider((ref) => DiscardAlertUseCase(ref.watch(alertRepositoryProvider)));
+final getWorkOrderUseCaseProvider =
+    Provider((ref) => GetWorkOrderUseCase(ref.watch(workOrderRepositoryProvider)));
+final createWorkOrderUseCaseProvider =
+    Provider((ref) => CreateWorkOrderUseCase(ref.watch(workOrderRepositoryProvider)));
+final assignWorkOrderUseCaseProvider =
+    Provider((ref) => AssignWorkOrderUseCase(ref.watch(workOrderRepositoryProvider)));
+final updateWorkOrderStatusUseCaseProvider = Provider(
+    (ref) => UpdateWorkOrderStatusUseCase(ref.watch(workOrderRepositoryProvider)));

@@ -9,3 +9,8 @@ T parseEnum<T extends Enum>(List<T> values, Object? raw) {
 }
 
 String _normalize(String s) => s.replaceAll('_', '').toLowerCase();
+
+/// Inverso de [parseEnum]: `inReview` -> `IN_REVIEW`.
+String apiName(Enum value) => value.name
+    .replaceAllMapped(RegExp('[A-Z]'), (m) => '_${m[0]}')
+    .toUpperCase();

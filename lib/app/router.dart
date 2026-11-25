@@ -4,7 +4,9 @@ import 'package:go_router/go_router.dart';
 
 import '../iam/presentation/login_screen.dart';
 import '../maintenance/domain/asset_status.dart';
+import '../maintenance/presentation/alert_detail_screen.dart';
 import '../maintenance/presentation/asset_detail_screen.dart';
+import '../maintenance/presentation/work_order_detail_screen.dart';
 import '../navigation/home_screen.dart';
 import 'routes.dart';
 import 'session_controller.dart';
@@ -40,6 +42,16 @@ final routerProvider = Provider<GoRouter>((ref) {
               // El estado calculado solo viene en el listado; se pasa como extra.
               status: state.extra as AssetStatus?,
             ),
+          ),
+          GoRoute(
+            path: 'alerts/:id',
+            builder: (context, state) =>
+                AlertDetailScreen(alertId: state.pathParameters['id']!),
+          ),
+          GoRoute(
+            path: 'work-orders/:id',
+            builder: (context, state) =>
+                WorkOrderDetailScreen(workOrderId: state.pathParameters['id']!),
           ),
         ],
       ),

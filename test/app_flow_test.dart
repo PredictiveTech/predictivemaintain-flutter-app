@@ -7,18 +7,15 @@ import 'package:predictivemaintain_flutter_app/core/error/failure.dart';
 import 'package:predictivemaintain_flutter_app/iam/domain/auth_repository.dart';
 import 'package:predictivemaintain_flutter_app/iam/domain/auth_session.dart';
 import 'package:predictivemaintain_flutter_app/main.dart';
-import 'package:predictivemaintain_flutter_app/maintenance/domain/alert.dart';
-import 'package:predictivemaintain_flutter_app/maintenance/domain/alert_repository.dart';
 import 'package:predictivemaintain_flutter_app/maintenance/domain/asset.dart';
 import 'package:predictivemaintain_flutter_app/maintenance/domain/asset_detail.dart';
 import 'package:predictivemaintain_flutter_app/maintenance/domain/asset_repository.dart';
+import 'package:predictivemaintain_flutter_app/core/domain/paged_result.dart';
 import 'package:predictivemaintain_flutter_app/maintenance/domain/asset_status.dart';
 import 'package:predictivemaintain_flutter_app/maintenance/domain/criticality.dart';
-import 'package:predictivemaintain_flutter_app/maintenance/domain/paged_result.dart';
 import 'package:predictivemaintain_flutter_app/maintenance/domain/sensor_reading.dart';
-import 'package:predictivemaintain_flutter_app/maintenance/domain/work_order.dart';
-import 'package:predictivemaintain_flutter_app/maintenance/domain/work_order_repository.dart';
 
+import 'support/fakes.dart';
 import 'support/in_memory_session_store.dart';
 
 class FakeAuth implements AuthRepository {
@@ -37,14 +34,11 @@ class FakeAuth implements AuthRepository {
   }
 }
 
-PagedResult<T> page<T>(List<T> items) => PagedResult(
-    items: items, number: 0, size: 20, totalElements: items.length, totalPages: 1);
-
 class FakeAssets implements AssetRepository {
   Failure? detailFailure;
 
   @override
-  Future<PagedResult<Asset>> getAssets() async => page([
+  Future<PagedResult<Asset>> getAssets() async => pagedOf([
         const Asset(
           id: '7',
           code: 'P-01',
@@ -77,16 +71,6 @@ class FakeAssets implements AssetRepository {
   Future<List<SensorReading>> getSensors(String id) async => const [];
 }
 
-class FakeAlerts implements AlertRepository {
-  @override
-  Future<PagedResult<Alert>> getAlerts() async => page(<Alert>[]);
-}
-
-class FakeOrders implements WorkOrderRepository {
-  @override
-  Future<PagedResult<WorkOrder>> getWorkOrders() async => page(<WorkOrder>[]);
-}
-
 void main() {
   late FakeAuth auth;
   late FakeAssets assets;
@@ -98,8 +82,8 @@ void main() {
         authSessionStoreProvider.overrideWithValue(store),
         authRepositoryProvider.overrideWithValue(auth),
         assetRepositoryProvider.overrideWithValue(assets),
-        alertRepositoryProvider.overrideWithValue(FakeAlerts()),
-        workOrderRepositoryProvider.overrideWithValue(FakeOrders()),
+        alertRepositoryProvider.overrideWithValue(FakeAlertRepository()),
+        workOrderRepositoryProvider.overrideWithValue(FakeWorkOrderRepository()),
       ],
       child: const MyApp(),
     ));
@@ -147,8 +131,8 @@ void main() {
     final container = ProviderContainer(overrides: [
       authSessionStoreProvider.overrideWithValue(store),
       assetRepositoryProvider.overrideWithValue(assets),
-      alertRepositoryProvider.overrideWithValue(FakeAlerts()),
-      workOrderRepositoryProvider.overrideWithValue(FakeOrders()),
+      alertRepositoryProvider.overrideWithValue(FakeAlertRepository()),
+      workOrderRepositoryProvider.overrideWithValue(FakeWorkOrderRepository()),
     ]);
     addTearDown(container.dispose);
     // Mismo paso que main(): restaurar antes de montar la app.

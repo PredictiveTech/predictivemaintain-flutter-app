@@ -1,6 +1,6 @@
 import 'asset.dart';
 import 'asset_detail.dart';
-import 'paged_result.dart';
+import '../../core/domain/paged_result.dart';
 import 'sensor_reading.dart';
 
 abstract interface class AssetRepository {

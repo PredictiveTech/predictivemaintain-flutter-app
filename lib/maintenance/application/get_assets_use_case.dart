@@ -1,6 +1,6 @@
 import '../domain/asset.dart';
 import '../domain/asset_repository.dart';
-import '../domain/paged_result.dart';
+import '../../core/domain/paged_result.dart';
 
 class GetAssetsUseCase {
   final AssetRepository _repository;

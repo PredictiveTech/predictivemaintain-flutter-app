@@ -2,7 +2,7 @@ import '../../core/network/api_client.dart';
 import '../domain/asset.dart';
 import '../domain/asset_detail.dart';
 import '../domain/asset_repository.dart';
-import '../domain/paged_result.dart';
+import '../../core/domain/paged_result.dart';
 import '../domain/sensor_reading.dart';
 import 'asset_detail_dto.dart';
 import 'asset_dto.dart';

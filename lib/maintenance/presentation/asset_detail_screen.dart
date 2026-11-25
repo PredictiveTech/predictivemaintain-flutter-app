@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/error/failure.dart';
+import '../../core/presentation/widgets/error_view.dart';
+import '../../core/presentation/widgets/status_chip.dart';
 import '../domain/asset_detail.dart';
 import '../domain/asset_status.dart';
 import '../domain/sensor_reading.dart';
@@ -75,11 +77,12 @@ class AssetDetailScreen extends ConsumerWidget {
   Widget _buildHeader(AsyncValue<AssetDetail> detail, VoidCallback onRetry) {
     final asset = detail.value;
     if (asset == null) {
-      return _ErrorBox(
+      return ErrorView(
         message: detail.hasError
             ? _describeError(detail.error!, 'el activo')
             : 'Activo no encontrado',
         onRetry: onRetry,
+        inline: true,
       );
     }
     final status = this.status;
@@ -101,7 +104,7 @@ class AssetDetailScreen extends ConsumerWidget {
                   ),
                 ),
                 if (status != null)
-                  _Chip(
+                  StatusChip(
                     label: assetStatusLabel(status),
                     color: assetStatusColor(status),
                     background: assetStatusBgColor(status),
@@ -134,7 +137,7 @@ class AssetDetailScreen extends ConsumerWidget {
             if (!asset.active)
               const Padding(
                 padding: EdgeInsets.only(top: 8),
-                child: _Chip(
+                child: StatusChip(
                   label: 'Inactivo',
                   color: Colors.grey,
                   background: Color(0xFFEEEEEE),
@@ -150,9 +153,10 @@ class AssetDetailScreen extends ConsumerWidget {
       AsyncValue<List<SensorReading>> sensors, VoidCallback onRetry) {
     if (sensors.hasError) {
       return [
-        _ErrorBox(
+        ErrorView(
           message: _describeError(sensors.error!, 'los sensores'),
           onRetry: onRetry,
+          inline: true,
         ),
       ];
     }
@@ -167,56 +171,6 @@ class AssetDetailScreen extends ConsumerWidget {
     }
     return [for (final s in list) _SensorCard(sensor: s)];
   }
-}
-
-class _ErrorBox extends StatelessWidget {
-  final String message;
-  final VoidCallback onRetry;
-
-  const _ErrorBox({required this.message, required this.onRetry});
-
-  @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        child: Column(
-          children: [
-            Text(message, textAlign: TextAlign.center),
-            const SizedBox(height: 12),
-            OutlinedButton(onPressed: onRetry, child: const Text('Reintentar')),
-          ],
-        ),
-      );
-}
-
-class _Chip extends StatelessWidget {
-  final String label;
-  final Color color;
-  final Color background;
-  final bool dot;
-
-  const _Chip({
-    required this.label,
-    required this.color,
-    required this.background,
-    this.dot = false,
-  });
-
-  @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(20)),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (dot) ...[
-              Icon(Icons.circle, color: color, size: 8),
-              const SizedBox(width: 6),
-            ],
-            Text(label,
-                style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w600)),
-          ],
-        ),
-      );
 }
 
 String _formatNumber(double v) =>
@@ -264,7 +218,7 @@ class _SensorCard extends StatelessWidget {
                   child: Text(sensor.metric,
                       style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
                 ),
-                _Chip(label: rangeLabel, color: rangeColor, background: rangeBg),
+                StatusChip(label: rangeLabel, color: rangeColor, background: rangeBg),
               ],
             ),
             const SizedBox(height: 4),

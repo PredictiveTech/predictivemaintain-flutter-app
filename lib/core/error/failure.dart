@@ -30,8 +30,14 @@ class UnauthorizedFailure extends Failure {
 
 /// HTTP 400/422: el backend rechazó los datos enviados.
 class ValidationFailure extends Failure {
-  const ValidationFailure(super.message,
-      {required int super.statusCode, super.serverMessage});
+  const ValidationFailure(super.message, {super.statusCode, super.serverMessage});
+}
+
+/// HTTP 409: el recurso cambió (versión desactualizada) o la operación no es
+/// válida en su estado actual.
+class ConflictFailure extends Failure {
+  const ConflictFailure(super.message,
+      {super.statusCode = 409, super.serverMessage});
 }
 
 /// Cualquier otra respuesta no exitosa (403, 404, 5xx…).
